@@ -1,10 +1,21 @@
 import express from 'express';
-import mongoose from 'mongoose';
-import dotenv from "dotenv";
+import dotenv from 'dotenv';
+dotenv.config();
+import { handleUncaughtErrors, handleUnhandledRejections } from './src/services';
+import { appLoader, databaseLoader, loadRedis } from './src/loaders';
+import { router } from './src/routes';
 
-const app = express()
+process.on('uncaughtException',
+  handleUncaughtErrors);
+process.on('unhandledRejection',
+  handleUnhandledRejections);
 
+const app = express();
 
-app.listen(process.env.PORT || 3000, function() {
-    console.log("App is running on port " + (process.env.PORT || 3000))
-});
+databaseLoader()
+  .then(loadRedis)
+  .then(() => appLoader(app, router))
+  .catch((error) => {
+    console.log(error);
+    process.exit(1);
+  });
